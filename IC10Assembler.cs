@@ -344,7 +344,7 @@ namespace IC10_Inliner
                     if (Result.OutputLines.Count == 129)
                         Warning("Exceeded vanilla IC10 LoC cap");
 
-                    if (Result.OutputLines.Count == 512)
+                    if (Result.OutputLines.Count == 513)
                         Warning("Exceeded modded More Lines of Code LoC cap");
                 }
             }
