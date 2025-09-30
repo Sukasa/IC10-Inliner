@@ -212,15 +212,10 @@ namespace IC10_Inliner
             int SourceLine = 0;
             int SectionIdx = 0;
 
-            void Warning(string Message)
-            {
-                Result.Warnings.Add(string.Format("{0} at line {1}", Message, SourceLine));
-            }
-
-            void Error(string Message)
-            {
-                Result.Errors.Add(string.Format("{0} at line {1}", Message, SourceLine));
-            }
+            void Warning(string Message) => Result.Warnings.Add(string.Format("{0} at line {1}", Message, SourceLine));
+            
+            void Error(string Message) => Result.Errors.Add(string.Format("{0} at line {1}", Message, SourceLine));
+            
 
             string ResolveAlias(string Alias)
             {
@@ -343,9 +338,11 @@ namespace IC10_Inliner
                             if (ParamString.StartsWith("hash", StringComparison.OrdinalIgnoreCase))
                                 ParamString = ComputeHash(ParamString[6..^2]).ToString();
                             else if (ParamString.StartsWith("str", StringComparison.OrdinalIgnoreCase))
+                            {
                                 if (ParamString.Length > 13)
                                     Warning($"String {ParamString[5..^2]} is too long, truncating to six characters");
                                 ParamString = ComputeString(ParamString[5..^2]).ToString();
+                            }
                         }
 
                         // Lastly, if this is a branch relative instruction, then if we can relativize the value we do so
