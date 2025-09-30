@@ -1,6 +1,6 @@
 # IC10 Inliner
 
-This is a small code project that helps to organize and minify ic10 programs.  It accepts standard ic10 assembly, parses it, and spits out minified/inlined assembly.
+This is a small code project that helps to organize and minify ic10 programs.  It accepts standard ic10 assembly, parses it, and spits out minified/inlined assembly.  This project is primarily meant for larger or multi-party projects, to allow you to reap the benefits of extensively-documented code, while not giving up any space efficiency in the in-practice asssembly.
 
 ## Features 
 The full set of features is:
