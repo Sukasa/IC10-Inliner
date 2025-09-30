@@ -319,6 +319,8 @@ namespace IC10_Inliner
                             if (ParamString.StartsWith("hash", StringComparison.OrdinalIgnoreCase))
                                 ParamString = ComputeHash(ParamString[6..^2]).ToString();
                             else if (ParamString.StartsWith("str", StringComparison.OrdinalIgnoreCase))
+                                if (ParamString.Length > 13)
+                                    Warning($"String {ParamString[5..^2]} is too long, truncating to six characters");
                                 ParamString = ComputeString(ParamString[5..^2]).ToString();
                         }
 
