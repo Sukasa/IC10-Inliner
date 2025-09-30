@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using static IC10_Inliner.IC10Instruction;
@@ -181,10 +182,31 @@ namespace IC10_Inliner
                 return Result;
             }
 
-            var SectionNames = ParseResult.Program.Sections.Select(x => x.Name);
-            if (Options.IncludeSections is not null && Options.IncludeSections.Any())
-                SectionNames = ParseResult.Program.Sections.Where(x => Options.IncludeSections.Contains(x.Name, StringComparer.OrdinalIgnoreCase)).SelectMany(x => x.RequiredSections).Union(Options.IncludeSections).Distinct();
+            // Get list of sections to include in assembly, either by pulling all of them (default)
 
+            // Or taking one or more from command-line, then evaluating all section dependencies
+            var SectionNames = ParseResult.Program.Sections.Select(x => x.Name).ToList();
+            if (Options.IncludeSections is not null && Options.IncludeSections.Any())
+            {
+                SectionNames = [.. Options.IncludeSections];
+                for (int i = 0; i < SectionNames.Count; i++)
+                {
+                    // For each listed section, ensure that it exists before trying to find out what dependencies it has
+                    var CheckSection = ParseResult.Program.Sections.FirstOrDefault(x => x.Name == SectionNames[i]);
+
+                    // Abort assembly if we look for a section that doesn't exist
+                    if (CheckSection is null)
+                    {
+                        Result.Errors.Add($"Missing section dependency {SectionNames[i]}");
+                        return Result;
+                    }
+
+                    // Now add all of this section's depencies to the list
+                    SectionNames.AddRange(CheckSection.RequiredSections.Where(x => !SectionNames.Contains(x)));
+                }
+            }
+
+            // Finally, build up the rich-type list of sections to assemble
             List<ProgramSection> Sections = [.. ParseResult.Program.Sections.Where(x => SectionNames.ToList().Contains(x.Name, StringComparer.OrdinalIgnoreCase))];
 
             int SourceLine = 0;
@@ -230,6 +252,8 @@ namespace IC10_Inliner
 
                 return null;
             }
+
+
             int Offset = 0;
             foreach (var Section in Sections)
             {
