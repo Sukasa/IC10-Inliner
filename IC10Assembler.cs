@@ -284,20 +284,29 @@ namespace IC10_Inliner
                             ProvidedType = ParameterType.IsRegister;
                         else
                         {
-                            // Symbols are harder to figure out, since we have to resolve them then handle both failed and succeeded resolves.
-                            // Also we don't have an exhaustive list of valid constants so I have to be a little sloppy in spots
-                            Symbol? symbol = ResolveSymbol(ParamString, AllowUnknown);
-                            if (symbol is null)
-                                ProvidedType = ParameterType.IsUnknownSymbol;
-                            else if (!NoSub) // If the symbol is valid, only resolve it if this instructions allows (e.g. don't do so for alias lines)
+
+                            if (Symbol.TryParseHex(ParamString, out ulong Value))
                             {
-                                ParamString = symbol.Resolve(Section);
-                                ProvidedType = symbol.SymbolType switch
+                                ProvidedType = ParameterType.IsConstant;
+                                ParamString = Value.ToString();
+                            }
+                            else
+                            {
+                                // Symbols are harder to figure out, since we have to resolve them then handle both failed and succeeded resolves.
+                                // Also we don't have an exhaustive list of valid constants so I have to be a little sloppy in spots
+                                Symbol? symbol = ResolveSymbol(ParamString, AllowUnknown);
+                                if (symbol is null)
+                                    ProvidedType = ParameterType.IsUnknownSymbol;
+                                else if (!NoSub) // If the symbol is valid, only resolve it if this instructions allows (e.g. don't do so for alias lines)
                                 {
-                                    Symbol.SymbolKind.Constant => ParameterType.IsConstant,
-                                    Symbol.SymbolKind.Label => ParameterType.IsConstant,
-                                    _ => ParameterType.IsUnknownSymbol
-                                };
+                                    ParamString = symbol.Resolve(Section);
+                                    ProvidedType = symbol.SymbolType switch
+                                    {
+                                        Symbol.SymbolKind.Constant => ParameterType.IsConstant,
+                                        Symbol.SymbolKind.Label => ParameterType.IsConstant,
+                                        _ => ParameterType.IsUnknownSymbol
+                                    };
+                                }
                             }
                         }
 

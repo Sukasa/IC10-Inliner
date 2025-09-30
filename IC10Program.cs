@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.Design;
+﻿using System;
+using System.ComponentModel.Design;
 using System.Globalization;
 
 namespace IC10_Inliner
@@ -46,6 +47,20 @@ namespace IC10_Inliner
                 };
             }
 
+            public static bool TryParseHex(string input, out ulong Parsed)
+            {
+                if (input.StartsWith("0x"))
+                {
+                    return ulong.TryParse(input[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out Parsed);
+                }
+                else if (input.StartsWith('$'))
+                {
+                    return ulong.TryParse(input[1..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out Parsed);
+                }
+                Parsed = 0;
+                return false;
+            }
+
             public Symbol(ProgramSection CurrentSection, string Name, string TextValue, SymbolKind Type)
             {
                 Section = CurrentSection;
@@ -55,17 +70,8 @@ namespace IC10_Inliner
                 switch (Type)
                 {
                     case SymbolKind.Constant:
-                        Value = null;
-                        if (TextValue.StartsWith("0x"))
-                        {
-                            if (int.TryParse(TextValue[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int ValueInt))
-                                Value = ValueInt;
-                        }
-                        else if (TextValue.StartsWith('$'))
-                        {
-                            if (int.TryParse(TextValue[1..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int ValueInt))
-                                Value = ValueInt;
-                        }
+                        if (TryParseHex(TextValue, out ulong ValueInt))
+                            Value = ValueInt;
                         else if (double.TryParse(TextValue, out double NewValue))
                             Value = NewValue;
                         EnumValue = TextValue;
