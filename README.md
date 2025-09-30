@@ -8,7 +8,7 @@ The full set of features is:
 - Notwithstanding the above, keeps `alias` lines that refer to device pins directly (d0, d1, etc)
 - Removes all labels, entering the fixed line offsets for them in place
 - Supports a unique `section` directive that allows you to split an ic10 program into parts, and selectively assemble these sections into the output via command line
-- Does basic parameter checks on assembly files
+- Does basic mnemonic parameter checks on assembly files, to warn you if the file will not work in-game
 
 ## Development
 
