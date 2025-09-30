@@ -284,7 +284,6 @@ namespace IC10_Inliner
                             ProvidedType = ParameterType.IsRegister;
                         else
                         {
-
                             if (Symbol.TryParseHex(ParamString, out ulong Value))
                             {
                                 ProvidedType = ParameterType.IsConstant;
