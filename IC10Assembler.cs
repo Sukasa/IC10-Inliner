@@ -355,7 +355,7 @@ namespace IC10_Inliner
                         }
 
                         // Append it to the line.
-                        // We only do this a few times with short strings, a StringBuilder would be too heavy
+                        // We only do this a few times with short strings, so it's not worth setting up a StringBuilder
                         Line = $"{Line} {ParamString}";
                     }
 
