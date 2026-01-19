@@ -18,6 +18,7 @@ public static partial class IC10Assembler
         string[] Lines = input.Split("\n", StringSplitOptions.TrimEntries);
         int SourceLine = -1;
         int SectionLineIndex = 0;
+        Macro? definingMacro = null;
 
         foreach (var Line in Lines)
         {
@@ -26,27 +27,88 @@ public static partial class IC10Assembler
             if (string.IsNullOrWhiteSpace(Line))
                 continue;
 
+            Pump(SourceLine, Line);
+        }
+
+        if (definingMacro != null)
+        {
+            Error($"Reached end of input before \"endmacro\" of \"{definingMacro.Name}\"");
+        }
+
+        Program.Sections.Add(CurrentSection);
+        if (!Result.SectionNames.Contains(CurrentSection.Name))
+            Result.SectionNames.Add(CurrentSection.Name);
+
+        return Result;
+
+        void Pump(int SourceLine, string Line)
+        {
             var Parsed = LineFormat().Match(Line);
             if (!Parsed.Success)
             {
                 Error("Unrecognized formatting or syntax error");
-                continue;
+                return;
             }
 
             var Directive = Parsed.Groups["Directive"].Value.ToLower();
+            if (definingMacro != null && Directive != "" && Directive != "endmacro")
+            {
+                Error("Only the \"endmacro\" directive is legal inside a macro!");
+                return;
+            }
+
             switch (Directive)
             {
                 case "import_symbols":
-
                     // TODO
+                    return;
 
-                    break;
+                case "macro":
+                    if (definingMacro != null)
+                    {
+                        Error("Cannot define macro inside a macro!");
+                        return;
+                    }
+
+                    if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count < 1)
+                    {
+                        Error("Macro name is mandatory");
+                        return;
+                    }
+
+                    string MacroName = Parsed.Groups["Params"].Captures[0].Value;
+
+                    List<string> MacroParams = [.. Parsed.Groups["Params"].Captures.AsEnumerable().Skip(1).Select(c => c.Value)];
+                    foreach (var MacroParam in MacroParams)
+                    {
+                        if (!SimpleIdentifier().Match(MacroParam).Success)
+                        {
+                            Error("Macro parameter \"MacroParam\" is not an acceptable identifier.");
+                            return;
+                        }
+                    }
+
+                    // Set this as the macro in progress.
+                    definingMacro = new(MacroName, MacroParams, SourceLine);
+                    return;
+
+                case "endmacro":
+                    if (definingMacro == null)
+                    {
+                        Error("Unmatched \"endmacro\", with no \"macro\" beforehand");
+                        return;
+                    }
+
+                    Program.Macros[definingMacro.Name] = definingMacro;
+                    definingMacro = null;
+                    return;
+
                 case "alias":
                 case "define":
                     if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count != 2)
                     {
                         Error($"Incorrect parameter count for {Parsed.Groups["Directive"].Value} directive");
-                        continue;
+                        return;
                     }
 
                     var Param1 = Parsed.Groups["Params"].Captures[0].Value;
@@ -59,7 +121,7 @@ public static partial class IC10Assembler
                         else
                             AddSymbol(new Symbol(CurrentSection, Param1, Param2, Symbol.SymbolKind.Constant));
 
-                        continue;
+                        return;
                     }
 
                     // Aliases should point to device pins or registers
@@ -81,7 +143,7 @@ public static partial class IC10Assembler
 
                     CurrentSection.Aliases[Param1] = Param2;
 
-                    continue;
+                    return;
 
                 case "section":
                     if (!Parsed.Groups["Params"].Success)
@@ -126,22 +188,48 @@ public static partial class IC10Assembler
                         SectionLineIndex = 0;
                     }
 
-                    continue;
+                    return;
+            }
+
+            if (definingMacro != null)
+            {
+                // We're defining a macro, so pump this line into that macro.
+                definingMacro.Add(Line);
+                return;
             }
 
             if (Parsed.Groups["Label"].Success)
-                AddSymbol(new Symbol(CurrentSection, Parsed.Groups["Label"].Value, SectionLineIndex.ToString(),
-                    Symbol.SymbolKind.Label));
+                AddSymbol(new Symbol(
+                    CurrentSection,
+                    Parsed.Groups["Label"].Value,
+                    SectionLineIndex.ToString(),
+                    Symbol.SymbolKind.Label
+                ));
 
-            // Otherwise, this is a line of code (label, opcode)
-            Elide(Parsed.Groups["Opcode"].Value, [.. Parsed.Groups["Params"].Captures.Select(x => x.Value)]);
+            if (Program.Macros.TryGetValue(Parsed.Groups["Opcode"].Value, out var RefMacro))
+            {
+                var UsageParams = new List<string>([.. Parsed.Groups["Params"].Captures.Select(x => x.Value)]);
+                if (UsageParams.Count != RefMacro.ParamNames.Count)
+                {
+                    Error($"Cannot expand macro \"{RefMacro.Name}\": expected {RefMacro.ParamNames.Count} parameters, got {UsageParams.Count}");
+                    return;
+                }
+
+                int SavedLine = SourceLine;
+                SourceLine = RefMacro.SourceLine;
+                foreach (var OutLine in RefMacro.Invoke(UsageParams))
+                {
+                    SourceLine++;
+                    Pump(SourceLine, OutLine);
+                }
+                SourceLine = SavedLine;
+            }
+            else
+            {
+                // Otherwise, this is a line of code (label, opcode)
+                Elide(Parsed.Groups["Opcode"].Value, [.. Parsed.Groups["Params"].Captures.Select(x => x.Value)]);
+            }
         }
-
-        Program.Sections.Add(CurrentSection);
-        if (!Result.SectionNames.Contains(CurrentSection.Name))
-            Result.SectionNames.Add(CurrentSection.Name);
-
-        return Result;
 
         void Warning(string Message)
         {
@@ -444,11 +532,14 @@ public static partial class IC10Assembler
         return output;
     }
 
-    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
+    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define|macro|endmacro)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
     private static partial Regex LineFormat();
 
     [GeneratedRegex("""^(?:sp|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
     private static partial Regex Register();
+
+    [GeneratedRegex("""^[a-zA-Z_]([a-zA-Z_0-9]*)$""")]
+    private static partial Regex SimpleIdentifier();
 
     [GeneratedRegex("""^(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)$""")]
     internal static partial Regex Macro();
