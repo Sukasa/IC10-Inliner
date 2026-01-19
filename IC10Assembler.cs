@@ -218,12 +218,23 @@ public static partial class IC10Assembler
             }
 
             if (Parsed.Groups["Label"].Success)
+            {
+                Symbol.SymbolScope withScope = Symbol.SymbolScope.Program;
+                if (definingMacro != null)
+                    withScope = Symbol.SymbolScope.Macro;
+
+                // TODO directional labels
+
                 AddSymbol(new Symbol(
                     CurrentSection,
                     Parsed.Groups["Label"].Value,
                     SectionLineIndex.ToString(),
                     Symbol.SymbolKind.Label
-                ));
+                )
+                {
+                    Scope = withScope,
+                });
+            }
 
             if (Program.Macros.TryGetValue(Parsed.Groups["Opcode"].Value, out var RefMacro))
             {
@@ -234,6 +245,8 @@ public static partial class IC10Assembler
                     return;
                 }
 
+                // TODO add this macro's scoped symbols to the stack of scopes to check
+
                 int SavedLine = SourceLine;
                 SourceLine = RefMacro.SourceLine;
                 foreach (var OutLine in RefMacro.Invoke(UsageParams))
@@ -241,6 +254,9 @@ public static partial class IC10Assembler
                     SourceLine++;
                     Pump(SourceLine, OutLine);
                 }
+
+                // TODO remove this macro's scoped symbols from the stack of scopes to check
+
                 SourceLine = SavedLine;
             }
             else
@@ -565,4 +581,7 @@ public static partial class IC10Assembler
 
     [GeneratedRegex("""^d(?:b|[0-5]|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
     private static partial Regex DevicePin();
+
+    [GeneratedRegex("""([-+])\1*$""")]
+    private static partial Regex DirectionalLabel();
 }

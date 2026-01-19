@@ -6,6 +6,10 @@ public record Symbol
 {
     public SymbolKind SymbolType { get; init; }
 
+    public SymbolScope Scope { get; init; }
+
+    public int OrignalCodeLine { get; init; }
+
     public string EnumValue { get; init; }
 
     public double? Value { get; init; }
@@ -15,6 +19,8 @@ public record Symbol
     public IC10Program.ProgramSection Section { get; init; } // Section this symbol is a part of (for labels)
 
     public bool IsValidConstant => Value is not null || SymbolType == SymbolKind.Label || IC10Assembler.Macro().IsMatch(EnumValue);
+
+    public bool IsLabelInScope(int FromOriginalCodeLine) => SymbolType == SymbolKind.Label && ((Scope == SymbolScope.Forward && OrignalCodeLine > FromOriginalCodeLine) || (Scope == SymbolScope.Backward && OrignalCodeLine <= FromOriginalCodeLine));
 
     public string Resolve(IC10Program.ProgramSection FromSection)
     {
@@ -74,6 +80,29 @@ public record Symbol
                 Value = null;
                 break;
         }
+    }
+
+    public enum SymbolScope
+    {
+        /// <summary>
+        ///     Program-level scope, for normal labels
+        /// </summary>
+        Program,
+
+        /// <summary>
+        ///     Macro-level scope, for any labels defined within a macro
+        /// </summary>
+        Macro,
+
+        /// <summary>
+        ///     Forward-jump labels (+, ++, etc)
+        /// </summary>
+        Forward,
+
+        /// <summary>
+        ///     Backward-jump labels (-, --, etc)
+        /// </summary>
+        Backward
     }
 
     public enum SymbolKind
