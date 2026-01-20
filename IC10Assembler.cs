@@ -9,19 +9,22 @@ public static partial class IC10Assembler
 {
     const string DefaultSection = "(default)";
 
+    public static string FilePath { get; set; } = "";
+
     public static ParseResult Parse(string input)
     {
         IC10Program Program = new();
         ParseResult Result = new(Program);
         ProgramSection CurrentSection = new(DefaultSection);
 
-        string[] Lines = input.Split("\n", StringSplitOptions.TrimEntries);
+        var Lines = input.Split("\n", StringSplitOptions.TrimEntries).ToList();
         int SourceLine = -1;
         int SectionLineIndex = 0;
         Macro? definingMacro = null;
 
-        foreach (var Line in Lines)
+        for(var LineNum = 0; LineNum < Lines.Count; LineNum++)
         {
+            var Line = Lines[LineNum];
             SourceLine++;
 
             if (string.IsNullOrWhiteSpace(Line))
@@ -59,6 +62,20 @@ public static partial class IC10Assembler
 
             switch (Directive)
             {
+                case "include":
+                    if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count != 1)
+                    {
+                        Error($"Incorrect parameter count for {Parsed.Groups["Directive"].Value} directive");
+                        continue;
+                    }
+
+                    var usePath = Parsed.Groups["Params"].Captures[0].Value;
+                    if (!string.IsNullOrWhiteSpace(FilePath))
+                        usePath = Path.Combine(FilePath, usePath); 
+                    var Parts = File.ReadAllLines(usePath);
+                    Lines.InsertRange(LineNum + 1, Parts);
+
+                    break;
                 case "import_symbols":
                     // TODO
                     return;
@@ -532,7 +549,7 @@ public static partial class IC10Assembler
         return output;
     }
 
-    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define|macro|endmacro)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
+    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define|include|macro|endmacro)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
     private static partial Regex LineFormat();
 
     [GeneratedRegex("""^(?:sp|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
