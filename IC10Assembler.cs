@@ -51,7 +51,8 @@ public static partial class IC10Assembler
                         usePath = Path.Combine(FilePath, usePath); 
                     var Parts = File.ReadAllLines(usePath);
                     Lines.InsertRange(LineNum + 1, Parts);
-
+                    SourceLine -= Parts.Length;
+                    
                     break;
                 case "import_symbols":
 
