@@ -20,7 +20,7 @@ public struct AssemblyResult
         Warnings.AddRange(ParseFaults.Warnings);
         Errors.AddRange(ParseFaults.Errors);
 
-        Symbols.AddRange(ParseFaults.Program.Sections.SelectMany(x => x.Symbols.Values)
+        Symbols.AddRange(ParseFaults.Program.Sections.SelectMany(x => x.Symbols.Symbols)
             .Where(x => x.SymbolType == Symbol.SymbolKind.Label));
     }
 }
