@@ -4,7 +4,8 @@ public partial class IC10Program
 {
     public class ProgramSection(string SectionName, List<string>? ReqSections = null)
     {
-        public Dictionary<string, Symbol> Symbols { get; } = [];
+        public required IList<Symbol> Symbols { get; init; }
+
         public Dictionary<string, string> Aliases { get; } = [];
         public List<ProgramLine> Lines { get; set; } = [];
         public int Offset { get; set; }
