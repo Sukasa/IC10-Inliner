@@ -15,7 +15,7 @@ public static partial class IC10Assembler
     {
         IC10Program Program = new();
         ParseResult Result = new(Program);
-        ProgramSection CurrentSection = new(DefaultSection);
+        ProgramSection CurrentSection = new(DefaultSection) { Symbols = ScopeManager.PeekScope() };
 
         var Lines = input.Split("\n", StringSplitOptions.TrimEntries).ToList();
         int SourceLine = -1;
@@ -72,11 +72,11 @@ public static partial class IC10Assembler
 
                     var usePath = Parsed.Groups["Params"].Captures[0].Value;
                     if (!string.IsNullOrWhiteSpace(FilePath))
-                        usePath = Path.Combine(FilePath, usePath); 
+                        usePath = Path.Combine(FilePath, usePath);
                     var Parts = File.ReadAllLines(usePath);
                     Lines.InsertRange(LineNum + 1, Parts);
                     SourceLine -= Parts.Length;
-                    
+
                     break;
                 case "import_symbols":
                     // TODO
@@ -108,7 +108,7 @@ public static partial class IC10Assembler
                     }
 
                     // Set this as the macro in progress.
-                    definingMacro = new(MacroName, MacroParams, SourceLine);
+                    definingMacro = new(MacroName, MacroParams, SourceLine) { Scope = ScopeManager.CreateScope(CurrentSection) };
                     return;
 
                 case "endmacro":
@@ -138,7 +138,7 @@ public static partial class IC10Assembler
                         if (Param1.Contains('.'))
                             Error("Cannot create symbol with period in name");
                         else
-                            AddSymbol(new Symbol(CurrentSection, Param1, Param2, Symbol.SymbolKind.Constant));
+                            AddSymbol(new Symbol(CurrentSection, Param1, Param2, Symbol.SymbolKind.Constant) { Scope = ScopeManager.PeekScope() });
 
                         return;
                     }
@@ -203,7 +203,10 @@ public static partial class IC10Assembler
                             }
                         }
 
-                        CurrentSection = new(NewSectionName, RequiredSections);
+                        // For now, we don't remove old scopes from the symbol manager.
+                        // Later on we'll want to track which scopes are being output if we're doing selective/section inlining.
+
+                        CurrentSection = new(NewSectionName, RequiredSections) { Symbols = ScopeManager.CreateScope(CurrentSection) };
                         SectionLineIndex = 0;
                     }
 
@@ -219,9 +222,9 @@ public static partial class IC10Assembler
 
             if (Parsed.Groups["Label"].Success)
             {
-                Symbol.SymbolScope withScope = Symbol.SymbolScope.Program;
+                Symbol.SymbolScopeType withScope = Symbol.SymbolScopeType.Program;
                 if (definingMacro != null)
-                    withScope = Symbol.SymbolScope.Macro;
+                    withScope = Symbol.SymbolScopeType.Macro;
 
                 // TODO directional labels
 
@@ -232,7 +235,8 @@ public static partial class IC10Assembler
                     Symbol.SymbolKind.Label
                 )
                 {
-                    Scope = withScope,
+                    ScopeType = withScope,
+                    Scope = ScopeManager.PeekScope()
                 });
             }
 
@@ -245,7 +249,7 @@ public static partial class IC10Assembler
                     return;
                 }
 
-                // TODO add this macro's scoped symbols to the stack of scopes to check
+                ScopeManager.InstantiateScope(RefMacro.Scope, CurrentSection, SectionLineIndex);
 
                 int SavedLine = SourceLine;
                 SourceLine = RefMacro.SourceLine;
@@ -255,7 +259,7 @@ public static partial class IC10Assembler
                     Pump(SourceLine, OutLine);
                 }
 
-                // TODO remove this macro's scoped symbols from the stack of scopes to check
+                ScopeManager.PopScope();
 
                 SourceLine = SavedLine;
             }
@@ -278,10 +282,14 @@ public static partial class IC10Assembler
 
         void AddSymbol(Symbol NewSymbol)
         {
-            if (CurrentSection.Symbols.TryAdd(NewSymbol.SymbolName, NewSymbol))
-                return;
-
-            Error($"Duplicate Symbol {NewSymbol.SymbolName}");
+            try
+            {
+                ScopeManager.AddSymbol(NewSymbol);
+            }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+            }
         }
 
         void Elide(string Opcode, params string[]? Parameters)
@@ -291,7 +299,8 @@ public static partial class IC10Assembler
                 OpCode = Opcode,
                 Params = Parameters?.ToList() ?? [],
                 OriginalCodeLine = SourceLine,
-                SectionOffset = SectionLineIndex
+                SectionOffset = SectionLineIndex,
+                Scope = ScopeManager.PeekScope()
             };
 
             if (!string.IsNullOrEmpty(Opcode))
@@ -439,13 +448,13 @@ public static partial class IC10Assembler
                         {
                             // Symbols are harder to figure out, since we have to resolve them then handle both failed and succeeded resolves.
                             // Also we don't have an exhaustive list of valid constants so I have to be a little sloppy in spots
-                            var symbol = ResolveSymbol(ParamString, AllowUnknown);
+                            var symbol = ResolveSymbol(ParamString, AllowUnknown, ProgramLine);
                             if (symbol is null)
                                 ProvidedType = ParameterType.IsUnknownSymbol;
                             else if
                                 (!NoSub) // If the symbol is valid, only resolve it if this instructions allows (e.g. don't do so for alias lines)
                             {
-                                ParamString = symbol.Resolve(Section);
+                                ParamString = symbol.Resolve();
                                 isLabel = symbol.SymbolType == Symbol.SymbolKind.Label;
 
                                 ProvidedType = symbol.SymbolType switch
@@ -516,34 +525,25 @@ public static partial class IC10Assembler
 
         return Result;
 
-        Symbol? ResolveSymbol(string Symbol, bool IgnoreFailedResolve)
+        Symbol? ResolveSymbol(string Symbol, bool IgnoreFailedResolve, ProgramLine Line)
         {
             // If Symbol has a dot in it, assume it's one of the builtin enums and elide as-is
             if (Symbol.Contains('.'))
                 IgnoreFailedResolve = true;
 
-            // Look for non-weak symbols first
-            for (var i = 0; i < SectionIdx; i++)
-                if (Sections[i].Symbols.TryGetValue(Symbol, out var value))
-                    return value;
+            Symbol? Result = null;
 
-            if (ParseResult.Program.Symbols.Contains(Symbol))
+            try
             {
-                if (Sections.Any(x => x.Symbols.ContainsKey(Symbol)))
-                    Warning($"Use before define of symbol {Symbol}");
-                else if (!ParseResult.Program.Sections.Any(x => x.Symbols.ContainsKey(Symbol)))
-                    Error($"{Symbol} not defined");
+                Result = ScopeManager.GetSymbol(Symbol, Line);
+            }
+            catch (Exception ex)
+            {
+                if (!IgnoreFailedResolve)
+                    Error(ex.Message);
             }
 
-            foreach (var t in ParseResult.Program.Sections)
-                if (t.Symbols.TryGetValue(Symbol, out var value))
-                    return value;
-
-
-            if (!IgnoreFailedResolve)
-                Error($"Unable to resolve symbol {Symbol}");
-
-            return null;
+            return Result;
         }
     }
 

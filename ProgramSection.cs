@@ -4,7 +4,7 @@ public partial class IC10Program
 {
     public class ProgramSection(string SectionName, List<string>? ReqSections = null)
     {
-        public required IList<Symbol> Symbols { get; init; }
+        public required SymbolScope Symbols { get; init; }
 
         public Dictionary<string, string> Aliases { get; } = [];
         public List<ProgramLine> Lines { get; set; } = [];
@@ -13,6 +13,6 @@ public partial class IC10Program
         public string Name { get; init; } = SectionName;
         public List<string> RequiredSections { get; init; } = ReqSections ?? [];
 
-        public bool IsEmpty => Size == 0 && Aliases.Count == 0 && Symbols.Count == 0;
+        public bool IsEmpty => Size == 0 && Aliases.Count == 0 && Symbols.Symbols.Count == 0;
     }
 }

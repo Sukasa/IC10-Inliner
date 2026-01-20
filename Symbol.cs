@@ -6,7 +6,9 @@ public record Symbol
 {
     public SymbolKind SymbolType { get; init; }
 
-    public SymbolScope Scope { get; init; }
+    public SymbolScopeType ScopeType { get; init; }
+
+    required public SymbolScope Scope { get; init; }
 
     public int OrignalCodeLine { get; init; }
 
@@ -16,17 +18,19 @@ public record Symbol
 
     public string SymbolName { get; init; }
 
+    public int LineOffset { get; set; }
+
     public IC10Program.ProgramSection Section { get; init; } // Section this symbol is a part of (for labels)
 
     public bool IsValidConstant => Value is not null || SymbolType == SymbolKind.Label || IC10Assembler.Macro().IsMatch(EnumValue);
 
-    public bool IsLabelInScope(int FromOriginalCodeLine) => SymbolType == SymbolKind.Label && ((Scope == SymbolScope.Forward && OrignalCodeLine > FromOriginalCodeLine) || (Scope == SymbolScope.Backward && OrignalCodeLine <= FromOriginalCodeLine));
+    public bool IsLabelInScope(int FromOriginalCodeLine) => SymbolType == SymbolKind.Label && ((ScopeType == SymbolScopeType.Forward && OrignalCodeLine > FromOriginalCodeLine) || (ScopeType == SymbolScopeType.Backward && OrignalCodeLine <= FromOriginalCodeLine));
 
-    public string Resolve(IC10Program.ProgramSection FromSection)
+    public string Resolve()
     {
         return SymbolType switch
         {
-            SymbolKind.Label => ((Value ?? 0.0) + FromSection.Offset).ToString(),
+            SymbolKind.Label => ((Value ?? 0.0) + Scope.GetLabelOffset()).ToString(),
             _ => Value?.ToString() ?? EnumValue,
         };
     }
@@ -82,7 +86,7 @@ public record Symbol
         }
     }
 
-    public enum SymbolScope
+    public enum SymbolScopeType
     {
         /// <summary>
         ///     Program-level scope, for normal labels
