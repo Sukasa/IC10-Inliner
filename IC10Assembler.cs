@@ -20,9 +20,10 @@ public static partial class IC10Assembler
         var Lines = input.Split("\n", StringSplitOptions.TrimEntries).ToList();
         int SourceLine = -1;
         int SectionLineIndex = 0;
+        int LineNum;
         Macro? definingMacro = null;
 
-        for(var LineNum = 0; LineNum < Lines.Count; LineNum++)
+        for(LineNum = 0; LineNum < Lines.Count; LineNum++)
         {
             var Line = Lines[LineNum];
             SourceLine++;
@@ -66,7 +67,7 @@ public static partial class IC10Assembler
                     if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count != 1)
                     {
                         Error($"Incorrect parameter count for {Parsed.Groups["Directive"].Value} directive");
-                        continue;
+                        return;
                     }
 
                     var usePath = Parsed.Groups["Params"].Captures[0].Value;
