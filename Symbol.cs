@@ -24,7 +24,7 @@ public record Symbol
 
     public bool IsValidConstant => Value is not null || SymbolType == SymbolKind.Label || IC10Assembler.Macro().IsMatch(EnumValue);
 
-    public bool IsLabelInScope(int FromOriginalCodeLine) => SymbolType == SymbolKind.Label && ((ScopeType == SymbolScopeType.Forward && OrignalCodeLine > FromOriginalCodeLine) || (ScopeType == SymbolScopeType.Backward && OrignalCodeLine <= FromOriginalCodeLine));
+    public bool IsLabelInScope(int FromOriginalCodeLine) => SymbolType == SymbolKind.Label && (ScopeType == SymbolScopeType.Program || (ScopeType == SymbolScopeType.Forward && OrignalCodeLine > FromOriginalCodeLine) || (ScopeType == SymbolScopeType.Backward && OrignalCodeLine <= FromOriginalCodeLine));
 
     public string Resolve()
     {

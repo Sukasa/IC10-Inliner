@@ -11,6 +11,6 @@ namespace IC10_Inliner
         required public ProgramSection? Section { get; init; }
         required public int CodeOffset { get; set; } // This can be modified later, as assembly is when section offsets are calculated
 
-        public int GetLabelOffset() => CodeOffset + Section?.Offset ?? 0;
+        public int GetLabelOffset() => Section?.Offset ?? 0;
     }
 }

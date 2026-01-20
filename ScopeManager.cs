@@ -27,22 +27,22 @@ internal class ScopeManager
     /// <returns></returns>
     public static Symbol GetSymbol(string SymbolName, ProgramLine Line)
     {
-        for (int i = Scopes.Count - 1; i >= 0; i--)
-            for (int j = 0; j < Scopes[i].Symbols.Count; j++)
-                if (Scopes[i].Symbols[j].SymbolName == SymbolName && (Scopes[i].Symbols[j].SymbolType != SymbolKind.Label || Scopes[i].Symbols[j].IsLabelInScope(Line.OriginalCodeLine)))
-                {
-                    Symbol S = Scopes[i].Symbols[j];
-                    S.LineOffset = Line.SectionOffset;
-                    return S;
-                }
-            
+        var Scope = Line.Scope;
+        while (Scope != null)
+        {
+            for (int j = 0; j < Scope.Symbols.Count; j++)
+                if (Scope.Symbols[j].SymbolName == SymbolName && (Scope.Symbols[j].SymbolType != SymbolKind.Label || Scope.Symbols[j].IsLabelInScope(Line.OriginalCodeLine)))
+                    return Scope.Symbols[j];
+
+            Scope = Scope.ParentScope;
+        }
 
         throw new Exception($"Unable to resolve symbol {SymbolName}");
     }
 
     public static void InstantiateScope(SymbolScope OriginalScope, ProgramSection InSection, int ScopeOffset = 0)
     {
-        Scopes.Add(new SymbolScope() { Symbols = OriginalScope.Symbols, ParentScope = OriginalScope.ParentScope, CodeOffset = ScopeOffset, Section = InSection });
+        Scopes.Add(new SymbolScope() { Symbols = [.. OriginalScope.Symbols], ParentScope = OriginalScope.ParentScope, CodeOffset = ScopeOffset, Section = InSection });
     }
 
     /// <summary>
