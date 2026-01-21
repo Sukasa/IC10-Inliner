@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "IC10 Inliner": {
+      "commandName": "Project",
+      "commandLineArgs": "\"Examples\\Example 3.asm\""
+    }
+  }
+}

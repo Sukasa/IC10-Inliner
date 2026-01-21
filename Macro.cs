@@ -8,6 +8,8 @@ public class Macro
     public List<string> ParamNames { get; private set; }
     private List<string> BodyLines = new();
 
+    public required SymbolScope Scope { get; init; }
+
     public Macro(string Name, IEnumerable<string> Params, int sourceLine)
     {
         this.Name = Name;

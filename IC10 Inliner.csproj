@@ -22,6 +22,9 @@
     <None Update="Examples\Example 1.asm">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Examples\Example 3.asm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Inliner\atmos_displays.asm">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

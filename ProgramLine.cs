@@ -15,5 +15,7 @@ public partial class IC10Program
         public int OriginalCodeLine { get; init; } = 0;
 
         public int SectionOffset { get; init; } = 0;
+
+        public required SymbolScope Scope { get; init; }
     }
 }
