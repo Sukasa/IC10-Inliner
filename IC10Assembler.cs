@@ -41,6 +41,11 @@ public static partial class IC10Assembler
             Error($"Reached end of input before \"endmacro\" of \"{definingMacro.Name}\"");
         }
 
+        if( IfEnables.Count > 1 )
+        {
+            Error($"Reached end of input while expecting {IfEnables.Count-1} \"endif\" directives");
+        }
+
         Program.Sections.Add(CurrentSection);
         if (!Result.SectionNames.Contains(CurrentSection.Name))
             Result.SectionNames.Add(CurrentSection.Name);
