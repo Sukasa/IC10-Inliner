@@ -483,6 +483,11 @@ public static partial class IC10Assembler
                                 Warning($"String {ParamString[5..^2]} is too long, truncating to six characters");
                             ParamString = ComputeString(ParamString[5..^2]).ToString();
                         }
+                        else if (ParamString.StartsWith("calc", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // TODO - Need to parse calculation out and provide a result
+                        }
+                        
                     }
 
                     // Lastly, if this is a branch relative instruction, then if we can relativize the value we do so
