@@ -70,7 +70,7 @@ public static partial class IC10Assembler
                         return;
                     }
 
-                    var usePath = Parsed.Groups["Params"].Captures.Aggregate("", (x, y) => x + y.Value);
+                    var usePath = Parsed.Groups["Params"].Captures.Aggregate("", (x, y) => x + " " + y.Value).Trim();
                     if (!string.IsNullOrWhiteSpace(FilePath))
                         usePath = Path.Combine(FilePath, usePath);
                     var Parts = File.ReadAllLines(usePath);
