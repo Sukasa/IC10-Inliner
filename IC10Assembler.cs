@@ -485,7 +485,7 @@ public static partial class IC10Assembler
                         }
                         else if (ParamString.StartsWith("calc", StringComparison.OrdinalIgnoreCase))
                         {
-                            // TODO - Need to parse calculation out and provide a result
+                            ParamString = Calculation.Calculate(ParamString[5..^1], ProgramLine).ToString();
                         }
                         
                     }
