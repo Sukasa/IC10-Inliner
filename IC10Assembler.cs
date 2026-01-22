@@ -23,6 +23,8 @@ public static partial class IC10Assembler
         int LineNum;
         Macro? definingMacro = null;
 
+        List<bool> IfEnables = [true];
+
         for(LineNum = 0; LineNum < Lines.Count; LineNum++)
         {
             var Line = Lines[LineNum];
@@ -63,6 +65,45 @@ public static partial class IC10Assembler
 
             switch (Directive)
             {
+                case "ifdef":
+                case "ifndef":
+                    if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count != 1)
+                    {
+                        Error($"Incorrect parameter count for {Parsed.Groups["Directive"].Value} directive");
+                        return;
+                    }
+
+                    string sym = Parsed.Groups["Params"].Captures[0].Value;
+                    bool defined;
+                    try
+                    {
+                        ScopeManager.GetSymbol(sym, CurrentSection.Symbols);
+                        defined = true;
+                    }
+                    catch (Exception)
+                    {
+                        defined = false;
+                    }
+
+                    bool expected = Directive == "ifdef";
+                    IfEnables.Add(IfEnables.Last() && expected == defined);
+                    return;
+
+                case "endif":
+                    if (IfEnables.Count == 1)
+                    {
+                        Error("endif without matching if");
+                        return;
+                    }
+                    IfEnables.RemoveAt(IfEnables.Count - 1);
+                    return;
+            }
+
+            // If this line is not enabled by ifdef/ifndef/etc, skip further processing.
+            if (!IfEnables.Last())
+                return;
+
+            switch(Directive) {
                 case "include":
                     if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count != 1)
                     {
@@ -77,7 +118,8 @@ public static partial class IC10Assembler
                     Lines.InsertRange(LineNum + 1, Parts);
                     SourceLine -= Parts.Length;
 
-                    break;
+                    return;
+
                 case "import_symbols":
                     // TODO
                     return;
@@ -567,7 +609,7 @@ public static partial class IC10Assembler
         return output;
     }
 
-    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define|include|macro|endmacro)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z_]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
+    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define|include|macro|endmacro|ifdef|ifndef|endif)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z_]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
     private static partial Regex LineFormat();
 
     [GeneratedRegex("""^(?:sp|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
