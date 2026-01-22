@@ -573,7 +573,13 @@ public static partial class IC10Assembler
                         (?:(?<Directive>alias|section|define|include|macro|endmacro)|
                         (?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?
                         (?:(?<Opcode>[a-zA-Z_]+))?)
-                        (?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)|(?:[cC][aA][lL][cC])\([^)]+\)))*?
+                        (?:[^\S\r\n]+
+                            (?<Params>
+                                (?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|
+                                (?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)|
+                                (?:[cC][aA][lL][cC])\([^)]+\)
+                            )
+                        )*?
                     )
                     (?:\s*[#;]\s*(?<Comment>.*))?\\?$
                     """, RegexOptions.IgnorePatternWhitespace)]
@@ -585,7 +591,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""^[a-zA-Z_]([a-zA-Z_0-9]*)$""")]
     private static partial Regex SimpleIdentifier();
 
-    [GeneratedRegex("""^(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)$""")]
+    [GeneratedRegex("""^(?:(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)|(?:[cC][aA][lL][cC])\([^)]+\))$""")]
     internal static partial Regex Macro();
 
     [GeneratedRegex("""^d(?:b|[0-5]|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
