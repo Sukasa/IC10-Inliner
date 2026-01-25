@@ -188,6 +188,14 @@ public static partial class IC10Assembler
                         return;
                     }
 
+                    if (Param2.StartsWith("hash", StringComparison.OrdinalIgnoreCase))
+                        Param2 = ComputeHash(Param2[6..^2]).ToString();
+                    else if (Param2.StartsWith("str", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (Param2.Length > 13)
+                            Warning($"String {Param2[5..^2]} is too long, truncating to six characters");
+                        Param2 = ComputeString(Param2[5..^2]).ToString();
+                    }
                     else if (Param2.StartsWith("calc(", StringComparison.OrdinalIgnoreCase))
                     {
                         Param2 = Calculation.Calculate(Param2[5..^1], ScopeManager.PeekScope()).ToString();
