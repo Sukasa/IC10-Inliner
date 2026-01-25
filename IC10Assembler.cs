@@ -11,6 +11,8 @@ public static partial class IC10Assembler
 
     public static string FilePath { get; set; } = "";
 
+    public static readonly string[] AllowedMacroDirectives = ["endmacro", "define"];
+    
     public static ParseResult Parse(string input)
     {
         IC10Program Program = new();
@@ -62,9 +64,9 @@ public static partial class IC10Assembler
             }
 
             var Directive = Parsed.Groups["Directive"].Value.ToLower();
-            if (definingMacro != null && Directive != "" && Directive != "endmacro")
+            if (definingMacro != null && Directive != "" && !AllowedMacroDirectives.Contains(Directive))
             {
-                Error("Only the \"endmacro\" directive is legal inside a macro!");
+                Error($"Directive {Directive} is not legal inside a macro!");
                 return;
             }
 
@@ -180,6 +182,17 @@ public static partial class IC10Assembler
                     var Param1 = Parsed.Groups["Params"].Captures[0].Value;
                     var Param2 = Parsed.Groups["Params"].Captures[1].Value;
 
+                    if (definingMacro != null)
+                    {
+                        definingMacro.Add(Line);
+                        return;
+                    }
+
+                    else if (Param2.StartsWith("calc(", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Param2 = Calculation.Calculate(Param2[5..^1], ScopeManager.PeekScope()).ToString();
+                    }
+                    
                     if (Directive == "define")
                     {
                         if (Param1.Contains('.'))
@@ -536,7 +549,7 @@ public static partial class IC10Assembler
                         }
                         else if (ParamString.StartsWith("calc", StringComparison.OrdinalIgnoreCase))
                         {
-                            ParamString = Calculation.Calculate(ParamString[5..^1], ProgramLine).ToString();
+                            ParamString = Calculation.Calculate(ParamString[5..^1], ProgramLine.Scope).ToString();
                         }
                         
                     }
