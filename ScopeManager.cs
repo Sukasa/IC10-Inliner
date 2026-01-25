@@ -23,7 +23,7 @@ internal class ScopeManager
     ///     Get a symbol from the specified scope
     /// </summary>
     /// <param name="SymbolName"></param>
-    /// <param name="ProgramLine"></param>
+    /// <param name="InScope"></param>
     /// <returns></returns>
     public static Symbol GetSymbol(string SymbolName, SymbolScope InScope)
     {
@@ -44,22 +44,9 @@ internal class ScopeManager
     ///     Get a symbol from the store, taking into account current scope and program location
     /// </summary>
     /// <param name="SymbolName"></param>
-    /// <param name="ProgramLine"></param>
+    /// <param name="Line"></param>
     /// <returns></returns>
-    public static Symbol GetSymbol(string SymbolName, ProgramLine Line)
-    {
-        SymbolScope? Scope = Line.Scope;
-        while (Scope != null)
-        {
-            for (int j = 0; j < Scope.Symbols.Count; j++)
-                if (Scope.Symbols[j].SymbolName == SymbolName && (Scope.Symbols[j].SymbolType != SymbolKind.Label || Scope.Symbols[j].IsLabelInScope(Line.OriginalCodeLine)))
-                    return Scope.Symbols[j];
-
-            Scope = Scope.ParentScope;
-        }
-
-        throw new Exception($"Unable to resolve symbol {SymbolName}");
-    }
+    public static Symbol GetSymbol(string SymbolName, ProgramLine Line) => GetSymbol(SymbolName, Line.Scope);
 
     public static void InstantiateScope(SymbolScope OriginalScope, ProgramSection InSection, int ScopeOffset = 0)
     {
