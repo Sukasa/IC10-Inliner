@@ -14,7 +14,7 @@ internal class ScopeManager
 
         // TODO this needs to be a warning, not an error.  That will have to come a bit later.
         if (Scopes[0..^1].Any(x => x.Symbols.Any(y => y.SymbolName == NewSymbol.SymbolName)))
-            throw new Exception($"Symbol definition {NewSymbol.SymbolName} shadows existing symbol");
+            throw new WarningException($"Symbol definition {NewSymbol.SymbolName} shadows existing symbol");
 
         Scopes[^1].Symbols.Add(NewSymbol);
     }
