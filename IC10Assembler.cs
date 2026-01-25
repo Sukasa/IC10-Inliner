@@ -333,6 +333,10 @@ public static partial class IC10Assembler
             {
                 ScopeManager.AddSymbol(NewSymbol);
             }
+            catch (WarningException warn)
+            {
+                Warning(warn.Message);
+            }
             catch (Exception ex)
             {
                 Error(ex.Message);
