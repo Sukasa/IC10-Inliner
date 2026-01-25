@@ -530,6 +530,11 @@ public static partial class IC10Assembler
                                 Warning($"String {ParamString[5..^2]} is too long, truncating to six characters");
                             ParamString = ComputeString(ParamString[5..^2]).ToString();
                         }
+                        else if (ParamString.StartsWith("calc", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ParamString = Calculation.Calculate(ParamString[5..^1], ProgramLine).ToString();
+                        }
+                        
                     }
 
                     // Lastly, if this is a branch relative instruction, then if we can relativize the value we do so
@@ -614,7 +619,22 @@ public static partial class IC10Assembler
         return output;
     }
 
-    [GeneratedRegex("""^\s*(?:(?:(?<Directive>alias|section|define|include|macro|endmacro|ifdef|ifndef|endif)|(?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?(?:(?<Opcode>[a-zA-Z_]+))?)(?:[^\S\r\n]+(?<Params>(?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)))*?)(?:\s*[#;]\s*(?<Comment>.*))?\\?$""")]
+    [GeneratedRegex("""
+                    ^\s*
+                    (?:
+                        (?:(?<Directive>alias|section|define|include|macro|endmacro)|
+                        (?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?
+                        (?:(?<Opcode>[a-zA-Z_]+))?)
+                        (?:[^\S\r\n]+
+                            (?<Params>
+                                (?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|
+                                (?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)|
+                                (?:[cC][aA][lL][cC])\([^)]+\)
+                            )
+                        )*?
+                    )
+                    (?:\s*[#;]\s*(?<Comment>.*))?\\?$
+                    """, RegexOptions.IgnorePatternWhitespace)]
     private static partial Regex LineFormat();
 
     [GeneratedRegex("""^(?:sp|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
@@ -623,7 +643,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""^[a-zA-Z_]([a-zA-Z_0-9]*)$""")]
     private static partial Regex SimpleIdentifier();
 
-    [GeneratedRegex("""^(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)$""")]
+    [GeneratedRegex("""^(?:(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)|(?:[cC][aA][lL][cC])\([^)]+\))$""")]
     internal static partial Regex Macro();
 
     [GeneratedRegex("""^d(?:b|[0-5]|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
