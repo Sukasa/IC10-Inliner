@@ -70,6 +70,8 @@ public partial class Calculation : IEnumerable<(string, int)>
                     
                     case "%":
                         OpValue1 %= OpValue;
+                        OpValue1 += OpValue;
+                        OpValue1 %= OpValue;
                         break;
                     
                     case "==":
