@@ -14,9 +14,9 @@ public partial class Calculation : IEnumerable<(string, int)>
     {
     }
 
-    public static double Calculate(string Input, IC10Program.ProgramLine Context) => _instance.DoCalculate(Input, Context);
+    public static double Calculate(string Input, SymbolScope Context) => _instance.DoCalculate(Input, Context);
 
-    private double DoCalculate(string Input, IC10Program.ProgramLine Context)
+    private double DoCalculate(string Input, SymbolScope Context)
     {
         Working = Input;
 
