@@ -1,0 +1,15 @@
+define MSTR_SP_RECIPE_TABLE 50
+define RECIPE_OFFSET_TEMP_SP 3
+define RECIPE_OFFSET_RESULT 1
+define RECIPE_OFFSET_PRES_SP 2
+define RECIPE_STRIDE 11
+
+macro recipe index NameStr ResultHash TempSP PresSP
+  define  TABLE_OFFSET Calc(index*RECIPE_STRIDE+MSTR_SP_RECIPE_TABLE)
+  poke TABLE_OFFSET NameStr
+  poke Calc(TABLE_OFFSET+RECIPE_OFFSET_RESULT) ResultHash
+  poke Calc(TABLE_OFFSET+RECIPE_OFFSET_TEMP_SP) TempSP
+  poke Calc(TABLE_OFFSET+RECIPE_OFFSET_PRES_SP) PresSP
+endmacro
+
+recipe 1 Str("a") Hash("aaaa") 111 222
