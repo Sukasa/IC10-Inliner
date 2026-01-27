@@ -447,7 +447,7 @@ public static partial class IC10Assembler
                 if (Sections[i].Aliases.TryGetValue(Alias, out var value))
                     return $"{value}{Append}";
 
-            return Alias;
+            return Append != "" ? $"{Alias}{Append}" : Alias;
         }
 
 
