@@ -169,6 +169,7 @@ public static partial class IC10Assembler
 
                     Program.Macros[definingMacro.Name] = definingMacro;
                     definingMacro = null;
+                    ScopeManager.PopScope();
                     return;
 
                 case "alias":
