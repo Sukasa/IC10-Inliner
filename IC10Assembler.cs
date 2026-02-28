@@ -648,7 +648,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""
                     ^\s*
                     (?:
-                        (?:(?<Directive>alias|section|define|include|macro|endmacro)|
+                        (?:(?<Directive>alias|section|define|include|macro|endmacro|ifdef|ifndef|endif)|
                         (?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?
                         (?:(?<Opcode>[a-zA-Z_]+))?)
                         (?:[^\S\r\n]+
