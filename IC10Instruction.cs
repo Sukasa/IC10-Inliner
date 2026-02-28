@@ -42,6 +42,7 @@ public readonly struct IC10Instruction(string Opcode, params ParameterType[] Par
         new("tan", ParameterType.Register, ParameterType.Numeric),
 
         new("clr", ParameterType.Device),
+        new("clrd", ParameterType.Device),
         new("get", ParameterType.Register, ParameterType.Device, ParameterType.Numeric),
         new("peek", ParameterType.Register),
         new("poke", ParameterType.Numeric, ParameterType.Numeric),
