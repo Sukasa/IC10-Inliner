@@ -545,7 +545,7 @@ public static partial class IC10Assembler
                         (ProvidedType != ParameterType.IsUnknownSymbol || !AllowUnknown))
                         Error("Parameter type mismatch");
 
-                    // If this is a HASH() or STR() macro, then we preprocess it
+                    // If this is a HASH(), CALC(), or STR() macro then we preprocess it
                     if (!Options.ElideMacros && Macro().IsMatch(ParamString))
                     {
                         if (ParamString.StartsWith("hash", StringComparison.OrdinalIgnoreCase))
@@ -625,13 +625,13 @@ public static partial class IC10Assembler
         }
     }
 
-    private static int ComputeHash(string Input)
+    internal static int ComputeHash(string Input)
     {
         var Bytes = Encoding.ASCII.GetBytes(Input);
         return unchecked((int)System.IO.Hashing.Crc32.HashToUInt32(Bytes));
     }
 
-    private static ulong ComputeString(string Input)
+    internal static ulong ComputeString(string Input)
     {
         ulong output = 0;
         Input = Input[..Math.Min(6, Input.Length)];
@@ -655,7 +655,7 @@ public static partial class IC10Assembler
                             (?<Params>
                                 (?:0x|\$)?[a-zA-Z0-9_\+\-\.:]+|
                                 (?:[hH][aA][sS][hH]|[sS][tT][rR])\(\"[^\"]*\"\)|
-                                (?:[cC][aA][lL][cC])\([^)]+\)
+                                (?:[cC][aA][lL][cC])\([^)]+(?:\([^)]*\))?[^)]*\)
                             )
                         )*?
                     )
@@ -669,7 +669,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""^[a-zA-Z_]([a-zA-Z_0-9]*)$""")]
     private static partial Regex SimpleIdentifier();
 
-    [GeneratedRegex("""^(?:(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)|(?:[cC][aA][lL][cC])\([^)]+\))$""")]
+    [GeneratedRegex("""^(?:(?:[hH][aA][sS][hH]|[sS][tT][rR])\(\".*\"\)|(?:[cC][aA][lL][cC])\([^)]+(?:\([^)]*\))?[^)]*\))$""")]
     internal static partial Regex Macro();
 
     [GeneratedRegex("""^d(?:b|[0-5]|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
