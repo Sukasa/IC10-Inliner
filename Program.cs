@@ -71,8 +71,6 @@ if (!result.Errors.Any() && args.Length > 0)
         {
             Failed = true;
             Console.Error.WriteLine($"Failed to assemble {Options.Filename}");
-            foreach (var warning in ParseResult.Warnings)
-                Console.Error.WriteLine($"Warning: {warning}");
             foreach (var warning in AssemblyResult.Warnings)
                 Console.Error.WriteLine($"Warning: {warning}");
             foreach (var error in AssemblyResult.Errors)
@@ -83,12 +81,11 @@ if (!result.Errors.Any() && args.Length > 0)
     {
         Failed = true;
         Console.Error.WriteLine($"Failed to parse file {Options.Filename}");
+        foreach (var warning in ParseResult.Warnings)
+            Console.Error.WriteLine($"Warning: {warning}");
         foreach (var error in ParseResult.Errors)
             Console.Error.WriteLine($"Error: {error}");
     }
-
-    foreach (var warning in ParseResult.Warnings)
-        Console.Error.WriteLine($"Warning: {warning}");
 
     return Failed ? 1 : 0;
 }
