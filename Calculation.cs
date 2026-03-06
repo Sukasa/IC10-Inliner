@@ -108,6 +108,22 @@ public partial class Calculation : IEnumerable<(string, int)>
                         OpValue1 = Math.Abs(OpValue1 - OpValue) > 0.001 ? 1 : 0;
                         break;
 
+                    case "<<":
+                        OpValue1 = (int)OpValue1 << (int)OpValue;
+                        break;
+
+                    case ">>":
+                        OpValue1 = (int)OpValue1 >> (int)OpValue;
+                        break;
+
+                    case "|":
+                        OpValue1 = (int)OpValue1 | (int)OpValue;
+                        break;
+
+                    case "&":
+                        OpValue1 = (int)OpValue1 & (int)OpValue;
+                        break;
+                    
                     default:
                         throw new Exception($"Unknown Operator {OpCode}");
                 }
