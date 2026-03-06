@@ -109,19 +109,19 @@ public partial class Calculation : IEnumerable<(string, int)>
                         break;
 
                     case "<<":
-                        OpValue1 = (int)OpValue1 << (int)OpValue;
+                        OpValue1 = (long)OpValue1 << (int)OpValue;
                         break;
 
                     case ">>":
-                        OpValue1 = (int)OpValue1 >> (int)OpValue;
+                        OpValue1 = (long)OpValue1 >> (int)OpValue;
                         break;
 
                     case "|":
-                        OpValue1 = (int)OpValue1 | (int)OpValue;
+                        OpValue1 = (long)OpValue1 | (long)OpValue;
                         break;
 
                     case "&":
-                        OpValue1 = (int)OpValue1 & (int)OpValue;
+                        OpValue1 = (long)OpValue1 & (long)OpValue;
                         break;
                     
                     default:
