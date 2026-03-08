@@ -199,7 +199,14 @@ public static partial class IC10Assembler
                     }
                     else if (Param2.StartsWith("calc(", StringComparison.OrdinalIgnoreCase))
                     {
-                        Param2 = Calculation.Calculate(Param2[5..^1], ScopeManager.PeekScope()).ToString();
+                        try
+                        {
+                            Param2 = Calculation.Calculate(Param2[5..^1], ScopeManager.PeekScope()).ToString();
+                        }
+                        catch (Exception ex)
+                        {
+                            Error(ex.Message);
+                        }
                     }
                     
                     if (Directive == "define")
@@ -558,7 +565,14 @@ public static partial class IC10Assembler
                         }
                         else if (ParamString.StartsWith("calc", StringComparison.OrdinalIgnoreCase))
                         {
-                            ParamString = Calculation.Calculate(ParamString[5..^1], ProgramLine.Scope).ToString();
+                            try
+                            {
+                                ParamString = Calculation.Calculate(ParamString[5..^1], ProgramLine.Scope).ToString();
+                            }
+                            catch (Exception ex)
+                            {
+                                Error(ex.Message);
+                            }
                         }
                         
                     }

@@ -149,7 +149,7 @@ public partial class Calculation : IEnumerable<(string, int)>
     [GeneratedRegex("""^(?:(0x|\$)[0-9a-fA-F]*|[\d.]+)$""")]
     private static partial Regex NumericValueRegex();
 
-    [GeneratedRegex("""^(?:[-+/*%]|[<>!=]=?)$""")]
+    [GeneratedRegex("""^(?:[-+/*%|&]|[<>!=]=?|<<|>>)$""")]
     private static partial Regex OperatorRegex();
 
     [GeneratedRegex("""^(?:[hH][aA][sS][hH]|[sS][tT][rR])\($""")]
