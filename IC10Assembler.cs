@@ -11,7 +11,7 @@ public static partial class IC10Assembler
 
     public static string FilePath { get; set; } = "";
 
-    public static readonly string[] AllowedMacroDirectives = ["endmacro", "define"];
+    public static readonly string[] AllowedMacroDirectives = ["endmacro", "define", "if", "ifdef", "ifndef", "endif"];
     
     public static ParseResult Parse(string input)
     {
@@ -72,8 +72,46 @@ public static partial class IC10Assembler
 
             switch (Directive)
             {
+                case "if":
+                    if (definingMacro is not null)
+                        break;
+                    
+                    var Param = Parsed.Groups["Params"].Captures[0].Value;
+
+                    
+                    if (Symbol.TryParseBinary(Param, out var Value) || Symbol.TryParseHex(Param, out Value))
+                        Param = Value.ToString();
+                    
+                    if (Param.StartsWith("hash", StringComparison.OrdinalIgnoreCase))
+                        Param = ComputeHash(Param[6..^2]).ToString();
+                    else if (Param.StartsWith("str", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (Param.Length > 13)
+                            Warning($"String {Param[5..^2]} is too long, truncating to six characters");
+                        Param = ComputeString(Param[5..^2]).ToString();
+                    }
+                    else if (Param.StartsWith("calc(", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            Param = Calculation.Calculate(Param[5..^1], ScopeManager.PeekScope()).ToString();
+                        }
+                        catch (Exception ex)
+                        {
+                            Error(ex.Message);
+                            IfEnables.Add(false);
+                            break;
+                        }
+                    }
+                    
+                    IfEnables.Add(IfEnables.Last() && double.Parse(Param) != 0);
+
+                    break;
                 case "ifdef":
                 case "ifndef":
+                    if (definingMacro is not null)
+                        break;
+                    
                     if (!Parsed.Groups["Params"].Success || Parsed.Groups["Params"].Captures.Count != 1)
                     {
                         Error($"Incorrect parameter count for {Parsed.Groups["Directive"].Value} directive");
@@ -97,6 +135,9 @@ public static partial class IC10Assembler
                     return;
 
                 case "endif":
+                    if (definingMacro is not null)
+                        break;
+                    
                     if (IfEnables.Count == 1)
                     {
                         Error("endif without matching if");
@@ -662,7 +703,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""
                     ^\s*
                     (?:
-                        (?:(?<Directive>alias|section|define|include|macro|endmacro|ifdef|ifndef|endif)|
+                        (?:(?<Directive>alias|section|define|include|macro|endmacro|if|ifdef|ifndef|endif)|
                         (?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?
                         (?:(?<Opcode>[a-zA-Z_]+))?)
                         (?:[^\S\r\n]+
