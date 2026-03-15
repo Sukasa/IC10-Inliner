@@ -20,7 +20,7 @@ public partial class Calculation : IEnumerable<(string, int)>
     {
         Working = Input;
 
-        var OpCode = "";
+        var OpCode = string.Empty;
         double OpValue1 = 0;
         double? OpValue2 = null;
         string? queued_macro = null;
@@ -146,7 +146,7 @@ public partial class Calculation : IEnumerable<(string, int)>
     [GeneratedRegex("^[a-zA-Z_][a-zA-Z0-9_]*$")]
     private static partial Regex IdentifierRegex();
 
-    [GeneratedRegex("""^(?:(0x|\$)[0-9a-fA-F]*|[\d.]+)$""")]
+    [GeneratedRegex("""^(?:(0x|\$)[0-9a-fA-F]*|[\d\.]+)$""")]
     private static partial Regex NumericValueRegex();
 
     [GeneratedRegex("""^(?:[-+/*%|&]|[<>!=]=?|<<|>>)$""")]
