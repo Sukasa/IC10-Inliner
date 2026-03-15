@@ -1,0 +1,48 @@
+  define  LabelCoal                 Hash("Coal")
+  define  LabelSilver               Hash("Silver")
+  define  LabelSilicon              Hash("Silicon")
+  define  LabelNickel               Hash("Nickel")
+  define  LabelLead                 Hash("Lead")
+  define  LabelIron                 Hash("Iron")
+  define  LabelGold                 Hash("Gold")
+  define  LabelCopper               Hash("Copper")
+  define  LabelCobalt               Hash("Cobalt")
+
+  define  ItemCoal                  Hash("ItemCoalOre")
+  define  ItemSilver                Hash("ItemSilverIngot")
+  define  ItemSilicon               Hash("ItemSiliconIngot")
+  define  ItemNickel                Hash("ItemNickelIngot")
+  define  ItemLead                  Hash("ItemLeadIngot")
+  define  ItemIron                  Hash("ItemIronIngot")
+  define  ItemGold                  Hash("ItemGoldIngot")
+  define  ItemCopper                Hash("ItemCopperIngot")
+  define  ItemCobalt                Hash("ItemCobaltOre")
+
+  define  SP_STOCKTABLE             100 ; Storage location in RAM for the stock table
+  define  SP_LOOKUPTABLE            200 ; Storage location in RAM for the LCD->Stock lookup pointer
+
+macro lookup Label Item
+  move r0 Label
+  move r1 Item
+  jal create_lookup
+endmacro
+
+  lookup LabelCoal ItemCoal
+  lookup LabelSilver ItemSilver
+  lookup LabelSilicon ItemSilicon
+  lookup LabelNickel ItemNickel
+  lookup LabelLead ItemLead
+  lookup LabelIron ItemIron
+  lookup LabelGold ItemGold
+  lookup LabelCopper ItemCopper
+  lookup LabelCobalt ItemCobalt
+
+  j loop
+
+create_lookup:
+
+  j ra
+
+loop:
+
+  j loop
