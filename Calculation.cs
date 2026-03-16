@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Text.RegularExpressions;
+using Microsoft.VisualBasic.CompilerServices;
 
 namespace IC10_Inliner;
 
@@ -166,6 +167,11 @@ public partial class Calculation : IEnumerable<(string, int)>
         while (strPos < Working.Length)
         {
             strLen = 0;
+            while (char.IsWhiteSpace(Working[strPos]) && strPos < Working.Length)
+                strPos++;
+
+            if (strPos >= Working.Length)
+                break;
 
             while (strPos + strLen < Working.Length)
             {
