@@ -134,6 +134,18 @@ public static partial class IC10Assembler
                     IfEnables.Add(IfEnables.Last() && expected == defined);
                     return;
 
+                case "else":
+                    if (definingMacro is not null)
+                        break;
+                    
+                    if (IfEnables.Count == 1)
+                    {
+                        Error("else without matching if");
+                        return;
+                    }
+                    IfEnables[^1] = !IfEnables[^1];
+                    return;
+                
                 case "endif":
                     if (definingMacro is not null)
                         break;
@@ -703,7 +715,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""
                     ^\s*
                     (?:
-                        (?:(?<Directive>alias|section|define|include|macro|endmacro|if|ifdef|ifndef|endif)|
+                        (?:(?<Directive>alias|section|define|include|macro|endmacro|if|ifdef|ifndef|endif|else)|
                         (?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?
                         (?:(?<Opcode>[a-zA-Z_]+))?)
                         (?:[^\S\r\n]+
