@@ -7,7 +7,7 @@ namespace IC10_Inliner;
 
 public static partial class IC10Assembler
 {
-    const string DefaultSection = "(default)";
+    private const string DefaultSection = "(default)";
 
     public static string FilePath { get; set; } = "";
 
@@ -20,22 +20,22 @@ public static partial class IC10Assembler
         ProgramSection CurrentSection = new(DefaultSection) { Symbols = ScopeManager.PeekScope() };
 
         var Lines = input.Split("\n", StringSplitOptions.TrimEntries).ToList();
-        int SourceLine = -1;
-        int SectionLineIndex = 0;
-        int LineNum;
+        var LinePtr = -1;
+        var SectionLineIndex = 0;
         Macro? definingMacro = null;
-
+        int LineNum;
+        
         List<bool> IfEnables = [true];
 
         for(LineNum = 0; LineNum < Lines.Count; LineNum++)
         {
             var Line = Lines[LineNum];
-            SourceLine++;
+            LinePtr++;
 
             if (string.IsNullOrWhiteSpace(Line))
                 continue;
 
-            Pump(SourceLine, Line);
+            Pump(LinePtr, Line);
         }
 
         if (definingMacro != null)
@@ -130,7 +130,7 @@ public static partial class IC10Assembler
                         defined = false;
                     }
 
-                    bool expected = Directive == "ifdef";
+                    var expected = Directive == "ifdef";
                     IfEnables.Add(IfEnables.Last() && expected == defined);
                     return;
 
@@ -176,7 +176,6 @@ public static partial class IC10Assembler
                         usePath = Path.Combine(FilePath, usePath);
                     var Parts = File.ReadAllLines(usePath);
                     Lines.InsertRange(LineNum + 1, Parts);
-                    SourceLine -= Parts.Length;
 
                     return;
 
@@ -197,16 +196,13 @@ public static partial class IC10Assembler
                         return;
                     }
 
-                    string MacroName = Parsed.Groups["Params"].Captures[0].Value;
+                    var MacroName = Parsed.Groups["Params"].Captures[0].Value;
 
                     List<string> MacroParams = [.. Parsed.Groups["Params"].Captures.AsEnumerable().Skip(1).Select(c => c.Value)];
-                    foreach (var MacroParam in MacroParams)
+                    if (MacroParams.Any(MacroParam => !SimpleIdentifier().Match(MacroParam).Success))
                     {
-                        if (!SimpleIdentifier().Match(MacroParam).Success)
-                        {
-                            Error("Macro parameter \"MacroParam\" is not an acceptable identifier.");
-                            return;
-                        }
+                        Error("Macro parameter \"MacroParam\" is not an acceptable identifier.");
+                        return;
                     }
 
                     // Set this as the macro in progress.
@@ -273,15 +269,13 @@ public static partial class IC10Assembler
                     }
 
                     // Aliases should point to device pins or registers
-                    if (CurrentSection.Aliases.ContainsKey(Param1) || Program.Aliases.Contains(Param1))
+                    if (CurrentSection.Aliases.ContainsKey(Param1) || !Program.Aliases.Add(Param1))
                         if (DevicePin()
                             .IsMatch(
                                 Param2)) // If we're referencing a device pin, it can be just a warning (and may actually be intended behaviour due to how device aliases work)
                             Warning($"Duplicate direct device pin alias {Param1}");
                         else
                             Error($"Duplicate alias {Param2}");
-                    else
-                        Program.Aliases.Add(Param1);
 
                     if (DevicePin().IsMatch(Param2))
                         Elide("alias", Param1, Param2);
@@ -380,7 +374,6 @@ public static partial class IC10Assembler
 
                 ScopeManager.InstantiateScope(RefMacro.Scope, CurrentSection, SectionLineIndex);
 
-                int SavedLine = SourceLine;
                 SourceLine = RefMacro.SourceLine;
                 foreach (var OutLine in RefMacro.Invoke(UsageParams))
                 {
@@ -389,8 +382,6 @@ public static partial class IC10Assembler
                 }
 
                 ScopeManager.PopScope();
-
-                SourceLine = SavedLine;
             }
             else
             {
@@ -401,12 +392,12 @@ public static partial class IC10Assembler
 
         void Warning(string Message)
         {
-            Result.Warnings.Add($"{Message} at line {SourceLine + 1}");
+            Result.Warnings.Add($"{Message} at line {LinePtr + 1}");
         }
 
         void Error(string Message)
         {
-            Result.Errors.Add($"{Message} at line {SourceLine + 1}");
+            Result.Errors.Add($"{Message} at line {LinePtr + 1}");
         }
 
         void AddSymbol(Symbol NewSymbol)
@@ -431,7 +422,7 @@ public static partial class IC10Assembler
             {
                 OpCode = Opcode,
                 Params = Parameters?.ToList() ?? [],
-                OriginalCodeLine = SourceLine,
+                OriginalCodeLine = LinePtr,
                 SectionOffset = SectionLineIndex,
                 Scope = ScopeManager.PeekScope()
             };
@@ -474,7 +465,7 @@ public static partial class IC10Assembler
                     return Result;
                 }
 
-                // Now add all of this section's depencies to the list
+                // Now add all of this section's dependencies to the list
                 SectionNames.AddRange(CheckSection.RequiredSections.Where(x => !SectionNames.Contains(x)));
             }
         }
@@ -486,12 +477,8 @@ public static partial class IC10Assembler
                 SectionNames.ToList().Contains(x.Name, StringComparer.OrdinalIgnoreCase))
         ];
 
-        int SourceLine = 0;
-        int SectionIdx = 0;
-
-        void Warning(string Message) => Result.Warnings.Add(string.Format("{0} at line {1}", Message, SourceLine + 1));
-
-        void Error(string Message) => Result.Errors.Add(string.Format("{0} at line {1}", Message, SourceLine + 1));
+        int SourceLine;
+        var SectionIdx = 0;
 
         string ResolveAlias(string Alias)
         {
@@ -580,12 +567,12 @@ public static partial class IC10Assembler
                         else
                         {
                             // Symbols are harder to figure out, since we have to resolve them then handle both failed and succeeded resolves.
-                            // Also we don't have an exhaustive list of valid constants so I have to be a little sloppy in spots
+                            // Also, as we don't have an exhaustive list of valid constants I have to be a little sloppy in spots
                             var symbol = ResolveSymbol(ParamString, AllowUnknown, ProgramLine);
                             if (symbol is null)
                                 ProvidedType = ParameterType.IsUnknownSymbol;
                             else if
-                                (!NoSub) // If the symbol is valid, only resolve it if this instructions allows (e.g. don't do so for alias lines)
+                                (!NoSub) // If the symbol is valid, only resolve it if this instruction allows (e.g. don't do so for alias lines)
                             {
                                 ParamString = symbol.Resolve();
                                 isLabel = symbol.SymbolType == Symbol.SymbolKind.Label;
@@ -633,7 +620,7 @@ public static partial class IC10Assembler
                     // Lastly, if this is a branch relative instruction, then if we can relativize the value we do so
                     if ((ParamMeta & ParameterType.BranchRelative) != 0)
                     {
-                        if (int.TryParse(ParamString, out int LabelAddress))
+                        if (int.TryParse(ParamString, out var LabelAddress))
                         {
                             if (isLabel)
                                 ParamString = (LabelAddress - (ProgramLine.SectionOffset + Section.Offset)).ToString();
@@ -670,17 +657,21 @@ public static partial class IC10Assembler
 
         return Result;
 
+        void Error(string Message) => Result.Errors.Add($"{Message} at line {SourceLine + 1}");
+
+        void Warning(string Message) => Result.Warnings.Add($"{Message} at line {SourceLine + 1}");
+
         Symbol? ResolveSymbol(string Symbol, bool IgnoreFailedResolve, ProgramLine Line)
         {
             // If Symbol has a dot in it, assume it's one of the builtin enums and elide as-is
             if (Symbol.Contains('.'))
                 IgnoreFailedResolve = true;
 
-            Symbol? Result = null;
+            Symbol? ResultSym = null;
 
             try
             {
-                Result = ScopeManager.GetSymbol(Symbol, Line);
+                ResultSym = ScopeManager.GetSymbol(Symbol, Line);
             }
             catch (Exception ex)
             {
@@ -688,7 +679,7 @@ public static partial class IC10Assembler
                     Error(ex.Message);
             }
 
-            return Result;
+            return ResultSym;
         }
     }
 
@@ -741,7 +732,4 @@ public static partial class IC10Assembler
 
     [GeneratedRegex("""^d(?:b|[0-5]|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
     private static partial Regex DevicePin();
-
-    [GeneratedRegex("""([-+])\1*$""")]
-    private static partial Regex DirectionalLabel();
 }
