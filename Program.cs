@@ -6,11 +6,13 @@ var sectionName = "min";
 
 var result = Parser.Default.ParseArguments<AssemblerOptions>(args);
 
+
 if (!result.Errors.Any() && args.Length > 0)
 {
     var Failed = false;
     var Options = result.Value;
-
+    IC10Assembler.Options = Options;
+    
     if (Options.IncludeSections?.Any() ?? false)
         sectionName = Options.IncludeSections.First();
 

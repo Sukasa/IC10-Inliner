@@ -9,6 +9,8 @@ public static partial class IC10Assembler
 {
     private const string DefaultSection = "(default)";
 
+    public static AssemblerOptions Options { get; set; } = new();
+
     public static string FilePath { get; set; } = "";
 
     public static readonly string[] AllowedMacroDirectives = ["endmacro", "define", "if", "ifdef", "ifndef", "endif"];
@@ -277,7 +279,7 @@ public static partial class IC10Assembler
                         else
                             Error($"Duplicate alias {Param2}");
 
-                    if (DevicePin().IsMatch(Param2))
+                    if (DevicePin().IsMatch(Param2) && !Options.OmitPinAliases)
                         Elide("alias", Param1, Param2);
 
                     else if (!Register().IsMatch(Param2))

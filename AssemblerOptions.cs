@@ -18,6 +18,9 @@ public class AssemblerOptions
     [Option('m', "keep-macros", Default = false)]
     public bool ElideMacros { get; set; } = false;
 
+    [Option('A', "omit-pin-aliases", Default = false)]
+    public bool OmitPinAliases { get; set; } = false;
+    
     [Option('S', "symbols", Default = false)]
     public bool EmitSymbolFile { get; set; } = false;
         
