@@ -71,7 +71,7 @@ public readonly struct IC10Instruction(string Opcode, params ParameterType[] Par
         new("nor", ParameterType.Register, ParameterType.Numeric, ParameterType.Numeric),
         new("not", ParameterType.Register, ParameterType.Numeric),
         new("or", ParameterType.Register, ParameterType.Numeric, ParameterType.Numeric),
-        new("clamp", ParameterType.Register, ParameterType.Numeric, ParameterType.Numeric),
+        new("clamp", ParameterType.Register, ParameterType.Numeric, ParameterType.Numeric, ParameterType.Numeric),
         new("sgn", ParameterType.Register, ParameterType.Numeric),
         new("sla", ParameterType.Register, ParameterType.Numeric, ParameterType.Numeric),
         new("sll", ParameterType.Register, ParameterType.Numeric, ParameterType.Numeric),
