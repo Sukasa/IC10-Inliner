@@ -9,13 +9,11 @@ public static partial class IC10Assembler
 {
     private const string DefaultSection = "(default)";
 
-    public static AssemblerOptions Options { get; set; } = new();
-
     public static string FilePath { get; set; } = "";
 
     public static readonly string[] AllowedMacroDirectives = ["endmacro", "define", "if", "ifdef", "ifndef", "endif"];
     
-    public static ParseResult Parse(string input)
+    public static ParseResult Parse(string input, AssemblerOptions Options)
     {
         IC10Program Program = new();
         ParseResult Result = new(Program);

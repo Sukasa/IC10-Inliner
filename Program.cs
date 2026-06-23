@@ -11,14 +11,13 @@ if (!result.Errors.Any() && args.Length > 0)
 {
     var Failed = false;
     var Options = result.Value;
-    IC10Assembler.Options = Options;
     
     if (Options.IncludeSections?.Any() ?? false)
         sectionName = Options.IncludeSections.First();
 
     FilePath = Path.GetDirectoryName(Options.Filename) ?? "";
 
-    var ParseResult = Parse(File.ReadAllText(Options.Filename));
+    var ParseResult = Parse(File.ReadAllText(Options.Filename), Options);
 
     if (ParseResult.Valid)
     {
