@@ -617,6 +617,13 @@ public static partial class IC10Assembler
                         
                     }
 
+                    // If we're a label, then we need to offset by the section position
+                    if (isLabel && int.TryParse(ParamString, out var BaseLabelAddress))
+                    {
+                        BaseLabelAddress += Section.Offset;
+                        ParamString = BaseLabelAddress.ToString();
+                    }
+
                     // Lastly, if this is a branch relative instruction, then if we can relativize the value we do so
                     if ((ParamMeta & ParameterType.BranchRelative) != 0)
                     {
