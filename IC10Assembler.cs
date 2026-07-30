@@ -270,14 +270,14 @@ public static partial class IC10Assembler
 
                     // Aliases should point to device pins or registers
                     if (CurrentSection.Aliases.ContainsKey(Param1) || !Program.Aliases.Add(Param1))
-                        if (DevicePin()
+                        if (AliasablePin()
                             .IsMatch(
                                 Param2)) // If we're referencing a device pin, it can be just a warning (and may actually be intended behaviour due to how device aliases work)
                             Warning($"Duplicate direct device pin alias {Param1}");
                         else
                             Error($"Duplicate alias {Param2}");
 
-                    if (DevicePin().IsMatch(Param2) && !Options.OmitPinAliases)
+                    if (AliasablePin().IsMatch(Param2) && !Options.OmitPinAliases)
                         Elide("alias", Param1, Param2);
 
                     else if (!Register().IsMatch(Param2))
@@ -739,4 +739,7 @@ public static partial class IC10Assembler
 
     [GeneratedRegex("""^d(?:b|[0-5]|r+(?:[0-9a]|1[0-5]))(?::\d)?$""")]
     private static partial Regex DevicePin();
+
+    [GeneratedRegex("""^d[0-5](?::\d)?$""")]
+    private static partial Regex AliasablePin();
 }
