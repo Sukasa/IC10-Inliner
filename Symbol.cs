@@ -1,8 +1,9 @@
 using System.Globalization;
+using JetBrains.Annotations;
 
 namespace IC10_Inliner;
 
-public record Symbol
+public class Symbol
 {
     public SymbolKind SymbolType { get; init; }
 
@@ -113,5 +114,32 @@ public record Symbol
     {
         Constant, // Constant symbol, i.e. number or LogicType enum, or STR("")/HASH("") construct
         Label, // Specifically for labels
+		Allocation, // Used for allocation-series configuration data
     }
+}
+
+public class AllocationSymbol : Symbol
+{
+	public int Address { get; set; }
+	public int StepSize { get; init; }
+
+    public AllocationSymbol(IC10Program.ProgramSection CurrentSection, string Name)
+		: base(CurrentSection, Name, "", SymbolKind.Allocation)
+    {
+	}
+
+	public int Take(int Num)
+	{
+		if( StepSize < 0 )
+		{
+			Address += StepSize * Num;
+			return Address;
+		}
+		else
+		{
+			int Addr = Address;
+			Address += StepSize * Num;
+			return Addr;
+		}
+	}
 }

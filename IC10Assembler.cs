@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.VisualBasic;
 using static IC10_Inliner.IC10Instruction;
 using static IC10_Inliner.IC10Program;
 
@@ -11,7 +12,7 @@ public static partial class IC10Assembler
 
     public static string FilePath { get; set; } = "";
 
-    public static readonly string[] AllowedMacroDirectives = ["endmacro", "define", "if", "ifdef", "ifndef", "endif"];
+    public static readonly string[] AllowedMacroDirectives = ["endmacro", "define", "defalloc", "if", "ifdef", "ifndef", "endif"];
     
     public static ParseResult Parse(string input, AssemblerOptions Options)
     {
@@ -220,6 +221,90 @@ public static partial class IC10Assembler
                     definingMacro = null;
                     ScopeManager.PopScope();
                     return;
+
+				case "defalloc":
+					var PCount = Parsed.Groups["Params"].Captures.Count;
+                    if (!Parsed.Groups["Params"].Success || PCount < 2 || PCount > 3 )
+                    {
+                        Error($"Incorrect parameter count for {Parsed.Groups["Directive"].Value} directive");
+                        return;
+                    }
+
+					// Name of allocation series
+					var SeriesName = Parsed.Groups["Params"].Captures[0].Value;
+					string SeriesID = "&allocate::" + SeriesName;
+
+					// Name of specific symbol
+					var SymName = Parsed.Groups["Params"].Captures[1].Value;
+
+					// Parameterization; omitted, or `FirstValue+/-StepSize`, or `xNumSteps`
+					var ParamExtra = PCount < 3 ? null : Parsed.Groups["Params"].Captures[2].Value;
+					bool hasNoData = ParamExtra == null;
+					bool hasInitData = ParamExtra != null && 0 < ParamExtra.IndexOfAny(['+', '-']);
+					bool hasMulti = ParamExtra != null && -1 < ParamExtra.IndexOf('x');
+
+					int SplitA = ParamExtra?.IndexOfAny(['+', '-']) ?? -1;
+					int SplitB = ParamExtra?.IndexOf('x') ?? -1;
+
+					// The third entry is the use count, 1 by default.
+					int[] paramValues = [0,0,1];
+					if( hasInitData )
+					{
+						int End = SplitB > SplitA ? SplitB : ParamExtra!.Length;
+						if( !int.TryParse(ParamExtra.AsSpan(0,SplitA), out int A)
+						 || !int.TryParse(ParamExtra.AsSpan(SplitA+1, End - SplitA - 1), out int B)
+						) {
+							Error($"Failed to parse allocation initialization info (Value+/-Step, e.g. '511-1' or '32+2')");
+							return;
+						}
+
+						if( ParamExtra![SplitA] == '-' ) B = -B;
+
+						paramValues[0] = A;
+						paramValues[1] = B;
+					}
+					if( hasMulti )
+					{
+						if( !int.TryParse(ParamExtra.AsSpan(SplitB+1), out int S) )
+						{
+							Error($"Failed to parse multi-allocation info (xCount, e.g. 'x16')");
+							return;
+						}
+
+						paramValues[2] = S;
+					}
+
+					string EffectiveAddr;
+					if( ! ScopeManager.FindSymbol(SeriesID, ScopeManager.PeekScope(), out Symbol SeriesConfig) )
+					{
+						// No existing series; make sure we get the initialization form
+						if( !hasInitData )
+						{
+							Error($"First allocation of a series needs to have initialization info (Value+/-Step, e.g. '511-1' or '32+2'; saw '{ParamExtra??""}' instead)");
+							return;
+						}
+
+						AllocationSymbol ASeriesConfig = new(CurrentSection, SeriesID) {
+							Scope = ScopeManager.PeekScope(),
+							Address = paramValues[0] - (paramValues[1] > 0 ? 0 : paramValues[1]),
+							StepSize = paramValues[1]
+						};
+
+						EffectiveAddr = ASeriesConfig.Take(paramValues[2]).ToString();
+						ScopeManager.AddSymbol(ASeriesConfig);
+					}
+					else if( SeriesConfig is AllocationSymbol ASeriesConfig )
+					{
+						EffectiveAddr = ASeriesConfig.Take(paramValues[2]).ToString();
+					}
+					else
+					{
+						Error($"Failed to allocate symbol from series");
+						return;
+					}
+
+					AddSymbol(new Symbol(CurrentSection, SymName, EffectiveAddr, Symbol.SymbolKind.Constant) { Scope = ScopeManager.PeekScope() });
+					return;
 
                 case "alias":
                 case "define":
@@ -713,7 +798,7 @@ public static partial class IC10Assembler
     [GeneratedRegex("""
                     ^\s*
                     (?:
-                        (?:(?<Directive>alias|section|define|include|macro|endmacro|if|ifdef|ifndef|endif|else)|
+                        (?:(?<Directive>alias|section|define|defalloc|include|macro|endmacro|if|ifdef|ifndef|endif|else)|
                         (?:(?<Label>[a-zA-Z_][a-zA-Z0-9_]*):\s*)?
                         (?:(?<Opcode>[a-zA-Z_]+))?)
                         (?:[^\S\r\n]+

@@ -41,6 +41,33 @@ internal class ScopeManager
     }
 
     /// <summary>
+    ///     Get a symbol from the specified scope, but as an outparam.
+    /// </summary>
+    /// <param name="SymbolName"></param>
+    /// <param name="InScope"></param>
+    /// <returns></returns>
+    public static bool FindSymbol(string SymbolName, SymbolScope InScope, out Symbol FoundSym)
+    {
+        SymbolScope? Scope = InScope;
+        while (Scope != null)
+        {
+            for (int j = 0; j < Scope.Symbols.Count; j++)
+                if (Scope.Symbols[j].SymbolName == SymbolName)
+				{
+					FoundSym = Scope.Symbols[j];
+					return true;
+				}
+
+            Scope = Scope.ParentScope;
+        }
+
+		#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+		FoundSym = null;
+		#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+		return false;
+    }
+
+    /// <summary>
     ///     Get a symbol from the store, taking into account current scope and program location
     /// </summary>
     /// <param name="SymbolName"></param>
