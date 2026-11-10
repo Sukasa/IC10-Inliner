@@ -353,20 +353,29 @@ public static partial class IC10Assembler
                         return;
                     }
 
-                    // Aliases should point to device pins or registers
-                    if (CurrentSection.Aliases.ContainsKey(Param1) || !Program.Aliases.Add(Param1))
-                        if (AliasablePin()
-                            .IsMatch(
-                                Param2)) // If we're referencing a device pin, it can be just a warning (and may actually be intended behaviour due to how device aliases work)
-                            Warning($"Duplicate direct device pin alias {Param1}");
-                        else
-                            Error($"Duplicate alias {Param2}");
+					if( AliasablePin().IsMatch(Param2) )
+					{
+						// Device pins.
+						if( CurrentSection.Aliases.ContainsKey(Param1) && !Program.Aliases.Add(Param1) )
+						{
+							Warning($"Duplicate direct device pin alias {Param1}");
+						}
 
-                    if (AliasablePin().IsMatch(Param2) && !Options.OmitPinAliases)
-                        Elide("alias", Param1, Param2);
+						if (!Options.OmitPinAliases)
+							Elide("alias", Param1, Param2);
+					}
+					else if( Register().IsMatch(Param2) )
+					{
+						if( CurrentSection.Aliases.ContainsKey(Param1) )
+							Error($"Duplicate alias name {Param1}");
 
-                    else if (!Register().IsMatch(Param2))
+						if( CurrentSection.Aliases.ContainsValue(Param2) )
+							Error($"Overlapping aliases for register {Param2}");
+					}
+					else
+					{
                         Warning($"Possible invalid alias target {Param2}");
+					}
 
                     CurrentSection.Aliases[Param1] = Param2;
 
